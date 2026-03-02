@@ -422,6 +422,10 @@
         <tr><td><span class="cmd-badge">.ping</span></td><td>Bot ping check</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
         <tr><td><span class="cmd-badge">.info</span></td><td>Bot information</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
         <tr><td><span class="cmd-badge">.update</span></td><td>GitHub update check</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
+        <tr><td><span class="cmd-badge">.edit prompt</span></td><td>AI Image Edit ✨</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
+        <tr><td><span class="cmd-badge">.ttlike url</span></td><td>TikTok Free Like ❤️</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
+        <tr><td><span class="cmd-badge">.ff uid</span></td><td>Free Fire Info 🎮</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
+        <tr><td><span class="cmd-badge">.ai question</span></td><td>AI Ask 🤖</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
         <tr><td><span class="cmd-badge">.sticker / .s</span></td><td>Image to sticker</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
         <tr><td><span class="cmd-badge">.toimg</span></td><td>Sticker to image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
         <tr><td><span class="cmd-badge">.blur [level]</span></td><td>Blur image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
@@ -557,6 +561,7 @@ async function loadSettings() {
     { key: 'autoStatusReply', icon: '💬', label: 'Status Auto Reply', desc: 'Auto reply to status' },
     { key: 'autoStatusSave', icon: '💾', label: 'Status Auto Save', desc: 'Auto save statuses' },
     { key: 'greetingAutoReply', icon: '👋', label: 'Greeting Auto Reply', desc: 'Reply to Hi/Hello' },
+    { key: 'aiMode', icon: '🤖', label: 'AI Auto Reply', desc: 'Messages AI reply කරනවා' },
   ];
 
   const container = document.getElementById('toggleSettings');
@@ -577,7 +582,7 @@ async function loadSettings() {
   `).join('');
 
   document.getElementById('botName').value = settings.botName || '';
-  document.getElementById('statusEmoji').value = settings.autoStatusLikeEmoji || '❤️';
+  document.getElementById('statusEmoji').value = settings.autoStatusLikeEmoji || '👽';
   document.getElementById('statusReplyMsg').value = settings.autoStatusReplyMessage || '';
   document.getElementById('cmdPrefix').value = settings.prefix || '.';
   document.getElementById('githubRepo').value = settings.githubRepo || '';
