@@ -1,13 +1,10 @@
 module.exports = {
-  // Panel Settings
-  panelPort: 3000,
-  panelUrl: 'http://localhost:3000',
-  panelSecret: 'your-secret-key-change-this',
+  panelPort: process.env.PORT || 3000,
+  panelUrl: process.env.PANEL_URL || 'http://localhost:3000',
+  panelSecret: process.env.SESSION_SECRET || 'wabot-secret-2024',
+  githubRepo: process.env.GITHUB_REPO || '',
 
-  // GitHub Auto-Update
-  githubRepo: '', // e.g. 'https://github.com/yourname/wabot'
-
-  // Bot Features (toggle on/off)
+  // Bot Features
   alwaysOnline: true,
   autoTyping: true,
   autoSeen: true,
@@ -16,18 +13,17 @@ module.exports = {
   autoStatusLikeEmoji: '❤️',
   autoStatusSave: false,
   autoStatusReply: true,
-  autoStatusReplyMessage: '✨ *Status කියෙව්වා!* ❤️',
-
-  // Auto Reply when someone says Hi
+  autoStatusReplyMessage: '✨ Status කියෙව්වා! ❤️',
   greetingAutoReply: true,
-  greetingKeywords: ['hi', 'hello', 'hii', 'hey', 'hy', 'හෙලෝ', 'හායි'],
+  greetingKeywords: ['hi','hello','hii','hey','hy','හෙලෝ','හායි'],
 
-  // Prefix for commands
+  // AI Auto Reply
+  aiMode: false,
+
+  // API Keys
+  apiKey: 'dex_hQO5V4ggt814y1XIMPZQKvSIyz1fdUI4qkHYXtJnruZmTLwp',
+  apiBase: 'https://public-apis-site-1b025aa8b541.herokuapp.com/api',
+
   prefix: '.',
-
-  // Bot name
   botName: 'WA-BOT',
-
-  // Welcome image URL
-  welcomeImage: 'https://i.imgur.com/your-welcome-image.jpg',
 };
