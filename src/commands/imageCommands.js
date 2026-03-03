@@ -16,53 +16,77 @@ async function getImageBuffer(msg) {
 async function handle(sock, msg, sender, command, args, body) {
   const prefix = config.prefix;
 
-  // ─── AI IMAGE EDIT ──────────────────────────────────────
-  if (command === 'edit') {
+// ─── AI IMAGE EDIT (With Retry & Custom API) ────────────────
+if (command === 'edit') {
     const prompt = args.join(' ');
-    const { buffer, imageMsg } = await getImageBuffer(msg);
+    
+    // Image එකක් mention/quote කර ඇත්දැයි බැලීම
+    const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+    const isImage = msg.message?.imageMessage || quoted?.imageMessage;
 
-    if (!buffer || !prompt) {
-      await sock.sendMessage(sender, {
-        text: `🎨 *AI Image Edit*\n\nImage attach/quote කරලා:\n\`${prefix}edit කාර් එකක් add කරන්න\`\n\nExamples:\n\`${prefix}edit make it sunset\`\n\`${prefix}edit add snow\`\n\`${prefix}edit make anime style\``
-      });
-      return true;
+    if (!isImage || !prompt) {
+        await sock.sendMessage(sender, {
+            text: `🎨 *AI Image Edit*\n\nභාවිතය: රූපයක් mention කර හෝ caption එකේ මෙසේ ලියන්න:\n\`${prefix}edit <prompt>\` \n\nනිදසුන්:\n\`${prefix}edit add a gold chain\`\n\`${prefix}edit රතු පාට කරන්න\``
+        });
+        return true;
     }
 
-    await sock.sendMessage(sender, { text: '🎨 AI image edit කරනවා... ⏳' });
+    await sock.sendMessage(sender, { text: '🎨 AI මගින් රූපය සකසමින් පවතී... ⏳' });
+
+    // Image Buffer එක ලබා ගැනීම
+    const media = quoted ? quoted.imageMessage : msg.message.imageMessage;
+    const buffer = await sock.downloadMediaMessage(media);
+    const base64 = buffer.toString('base64');
+    const mimeType = media.mimetype || 'image/jpeg';
+
+    // API විස්තර
+    const apiUrl = `https://public-apis-site-1b025aa8b541.herokuapp.com/api/image/editv1?apikey=dex_hQO5V4ggt814y1XIMPZQKvSIyz1fdUI4qkHYXtJnruZmTLwp`;
+
+    // Process කරන Function එක (Retry එක සඳහා)
+    const processEdit = async () => {
+        const res = await axios.post(apiUrl, {
+            image: `data:${mimeType};base64,${base64}`,
+            prompt: prompt
+        }, { timeout: 90000 }); // තත්පර 90ක් timeout ලබා දී ඇත
+        return res.data;
+    };
 
     try {
-      const base64 = buffer.toString('base64');
-      const mimeType = imageMsg.mimetype || 'image/jpeg';
+        let resultData;
+        let success = false;
 
-      const res = await axios.post(
-        `${config.apiBase}/image/editv1?apikey=${config.apiKey}`,
-        { image: `data:${mimeType};base64,${base64}`, prompt },
-        { timeout: 60000 }
-      );
+        // පළමු උත්සාහය (Attempt 1)
+        try {
+            resultData = await processEdit();
+            success = true;
+        } catch (err) {
+            console.log("පළමු උත්සාහය අසාර්ථකයි, නැවත උත්සාහ කරයි...");
+            // දෙවන උත්සාහය (Attempt 2 - Retry)
+            resultData = await processEdit();
+            success = true;
+        }
 
-      const data = res.data;
-      const resultUrl = data?.result || data?.url || data?.image || data?.output || data?.data;
+        if (success) {
+            // API එකෙන් ලැබෙන විවිධ JSON key වලට ගැලපෙන සේ සැකසීම
+            const resultUrl = resultData?.result || resultData?.url || resultData?.image || resultData?.output;
 
-      if (resultUrl && typeof resultUrl === 'string' && resultUrl.startsWith('http')) {
-        const imgRes = await axios.get(resultUrl, { responseType: 'arraybuffer', timeout: 30000 });
-        await sock.sendMessage(sender, {
-          image: Buffer.from(imgRes.data),
-          caption: `✅ *AI Edit Done!*\n📝 ${prompt}`
-        });
-      } else if (resultUrl && resultUrl.startsWith('data:')) {
-        const base64Data = resultUrl.split(',')[1];
-        await sock.sendMessage(sender, {
-          image: Buffer.from(base64Data, 'base64'),
-          caption: `✅ *AI Edit Done!*\n📝 ${prompt}`
-        });
-      } else {
-        await sock.sendMessage(sender, { text: `❌ Edit failed!\nResponse: ${JSON.stringify(data).substring(0, 200)}` });
-      }
+            if (resultUrl && resultUrl.startsWith('http')) {
+                const imgRes = await axios.get(resultUrl, { responseType: 'arraybuffer' });
+                await sock.sendMessage(sender, {
+                    image: Buffer.from(imgRes.data),
+                    caption: `✅ *AI Edit සාර්ථකයි!*\n📝 Prompt: ${prompt}`
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(sender, { text: `❌ Edit අසාර්ථකයි. (API Error)` });
+            }
+        }
     } catch (e) {
-      await sock.sendMessage(sender, { text: `❌ Error: ${e.message}` });
+        console.error(e);
+        await sock.sendMessage(sender, { text: `❌ දෝෂයක් ඇති විය: ${e.message}` });
     }
     return true;
-  }
+}
+
 
   // ─── STICKER ────────────────────────────────────────────
   if (command === 'sticker' || command === 's') {
