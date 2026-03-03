@@ -66,7 +66,7 @@ async function startBot() {
 
       // Send welcome message
       await sock.sendMessage(botJid, {
-        text: `┏━━━━━━━━━━━━━━━━━━━━┓\n┃   🤖 *BOT CONNECTED* 🤖   ┃\n┗━━━━━━━━━━━━━━━━━━━━┛\n\n✅ *සාර්ථකව සම්බන්ධ විය!*\n\n📱 *Number:* ${botNum}\n🔐 *OTP:* \`${otp}\`\n\n🌐 Panel: ${config.panelUrl}\n_OTP සහ ඔබේ Number panel login සඳහා භාවිත කරන්න_\n\n━━━━━━━━━━━━━━━━━━━━\n💫 *Powered by WA-BOT PANEL*`
+        text: `┏━━━━━━━━━━━━━━━━━━━━┓\n┃   🤖 *BOT CONNECTED* 🤖   ┃\n┗━━━━━━━━━━━━━━━━━━━━┛\n\n✅ *සාර්ථකව සම්බන්ධ විය!*\n\n📱 *Number:* ${botNum}\n🔐 *OTP:* \`${otp}\`\n\n🌐 Panel: ${config.panelUrl}\n_OTP සහ ඔබේ Number panel login සඳහා භාවිත කරන්න_\n\n━━━━━━━━━━━━━━━━━━━━\n💫 *Powered by CHALAH-MD*`
       });
     }
   });
