@@ -155,107 +155,115 @@ async function startBot() {
   }
 }
 
+
 // ═══════════════════════════════════════
-//  PAIR CODE API
+//  QR CODE API
 // ═══════════════════════════════════════
-app.post('/api/pair', async (req, res) => {
-  const { number } = req.body;
-  if (!number) return res.json({ success: false, message: 'Number required' });
+const QRCode = require('qrcode');
 
-  const cleanNumber = number.replace(/[^0-9]/g, '');
+async function startQRSession() {
+  // Stop current connection
+  if (sock) {
+    try { sock.end(); sock.ws?.close(); } catch (e) {}
+    sock = null;
+    isConnected = false;
+  }
 
-  try {
-    // Stop current connection
-    if (sock) {
-      try { sock.end(); sock.ws?.close(); } catch (e) {}
-      sock = null;
-      isConnected = false;
-    }
+  // Clear old auth
+  await fs.remove(AUTH_DIR);
+  await fs.ensureDir(AUTH_DIR);
 
-    // Clear old auth
-    await fs.remove(AUTH_DIR);
-    await fs.ensureDir(AUTH_DIR);
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+  const { version } = await fetchLatestBaileysVersion();
 
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
-    const { version } = await fetchLatestBaileysVersion();
+  sock = makeWASocket({
+    version,
+    logger,
+    printQRInTerminal: false,
+    auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(state.keys, logger)
+    },
+    browser: ['WA-BOT', 'Chrome', '3.0'],
+    markOnlineOnConnect: config.alwaysOnline,
+  });
 
-    sock = makeWASocket({
-      version,
-      logger,
-      printQRInTerminal: false,
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, logger)
-      },
-      browser: ['WA-BOT', 'Chrome', '3.0'],
-    });
+  sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('creds.update', saveCreds);
+  // Return QR via promise
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('QR timeout')), 30000);
 
-    // Wait then request pair code
-    await new Promise(r => setTimeout(r, 2000));
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
 
-    if (!sock.authState.creds.registered) {
-      const code = await sock.requestPairingCode(cleanNumber);
-      const formatted = code?.match(/.{1,4}/g)?.join('-') || code;
-
-      writeStatus({ status: 'pending', pairingCode: formatted, number: cleanNumber });
-      io.emit('pairingCode', { code: formatted });
-
-      res.json({ success: true, code: formatted });
-
-      // Handle connection after pair
-      sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-
-        if (connection === 'open') {
-          isConnected = true;
-          const botJid = sock.user.id;
-          const botNum = botJid.split(':')[0];
-          const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-          fs.writeJsonSync(path.join(AUTH_DIR, 'otp.json'), { otp, number: botNum, time: Date.now() });
-          writeStatus({ status: 'connected', number: botNum });
-          io.emit('botConnected', { number: botNum });
-
-          console.log(`[BOT] Paired! ${botNum} | OTP: ${otp}`);
-
-          try {
-            await sock.sendMessage(botJid, {
-              text: `┏━━━━━━━━━━━━━━━━━━━━┓\n┃   🤖 *BOT CONNECTED!* 🤖   ┃\n┗━━━━━━━━━━━━━━━━━━━━┛\n\n✅ *සාර්ථකව සම්බන්ධ විය!*\n\n📱 *Number:* ${botNum}\n🔐 *OTP:* \`${otp}\`\n\n🌐 *Panel:* ${config.panelUrl}\n\n_Panel login: Number + OTP_\n\n💫 *WA-BOT*`
-            });
-          } catch (e) {}
-
-          // Load message handlers
-          sock.ev.on('messages.upsert', async (m) => {
-            if (!isConnected) return;
-            for (const msg of m.messages) {
-              if (msg.key.remoteJid === 'status@broadcast') {
-                await handleStatusUpdate(sock, msg);
-              } else {
-                await handleMessage(sock, m);
-                break;
-              }
-            }
+      if (qr) {
+        clearTimeout(timeout);
+        try {
+          // Convert QR string to image data URL
+          const qrDataUrl = await QRCode.toDataURL(qr, {
+            width: 300,
+            margin: 2,
+            color: { dark: '#000000', light: '#ffffff' }
           });
-
-        } else if (connection === 'close') {
-          isConnected = false;
-          const code = lastDisconnect?.error?.output?.statusCode;
-          writeStatus({ status: 'disconnected' });
-          if (code !== DisconnectReason.loggedOut) setTimeout(() => startBot(), 5000);
+          io.emit('qrCode', { qr: qrDataUrl });
+          resolve(qrDataUrl);
+        } catch (e) {
+          reject(e);
         }
-      });
+      }
 
-    } else {
-      res.json({ success: false, message: 'Already registered! Restart.' });
-    }
+      if (connection === 'open') {
+        isConnected = true;
+        const botJid = sock.user.id;
+        const botNum = botJid.split(':')[0];
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+        fs.writeJsonSync(path.join(AUTH_DIR, 'otp.json'), { otp, number: botNum, time: Date.now() });
+        writeStatus({ status: 'connected', number: botNum });
+        io.emit('botConnected', { number: botNum });
+
+        console.log(`[BOT] Connected via QR! ${botNum} | OTP: ${otp}`);
+
+        try {
+          await sock.sendMessage(botJid, {
+            text: `┏━━━━━━━━━━━━━━━━━━━━┓\n┃   🤖 *BOT CONNECTED!* 🤖   ┃\n┗━━━━━━━━━━━━━━━━━━━━┛\n\n✅ *සාර්ථකව සම්බන්ධ විය!*\n\n📱 *Number:* ${botNum}\n🔐 *OTP:* \`${otp}\`\n\n🌐 *Panel:* ${config.panelUrl}\n\n_Panel login: Number + OTP_\n\n💫 *WA-BOT*`
+          });
+        } catch (e) {}
+
+        // Load message handlers
+        sock.ev.on('messages.upsert', async (m) => {
+          if (!isConnected) return;
+          for (const msg of m.messages) {
+            if (msg.key.remoteJid === 'status@broadcast') {
+              await handleStatusUpdate(sock, msg);
+            } else {
+              await handleMessage(sock, m);
+              break;
+            }
+          }
+        });
+
+      } else if (connection === 'close') {
+        isConnected = false;
+        const code = lastDisconnect?.error?.output?.statusCode;
+        writeStatus({ status: 'disconnected' });
+        if (code !== DisconnectReason.loggedOut) setTimeout(() => startBot(), 5000);
+      }
+    });
+  });
+}
+
+app.post('/api/qr', async (req, res) => {
+  try {
+    const qrDataUrl = await startQRSession();
+    res.json({ success: true, qr: qrDataUrl });
   } catch (e) {
-    console.error('[PAIR ERROR]', e.message);
-    if (!res.headersSent) res.json({ success: false, message: e.message });
+    console.error('[QR ERROR]', e.message);
+    res.json({ success: false, message: e.message });
   }
 });
+
 
 // ═══════════════════════════════════════
 //  PANEL ROUTES
