@@ -1,7 +1,7 @@
 const config = require('./config');
+const axios = require('axios');
 const fs = require('fs-extra');
 
-// Load all command handlers
 const imageCommands = require('./commands/imageCommands');
 const utilCommands = require('./commands/utilCommands');
 const botCommands = require('./commands/botCommands');
@@ -12,11 +12,9 @@ async function handleMessage(sock, m) {
     if (!msg || msg.key.fromMe) return;
 
     const sender = msg.key.remoteJid;
-    const isGroup = sender.endsWith('@g.us');
     const pushName = msg.pushName || 'User';
     const senderNumber = msg.key.participant?.split('@')[0] || sender.split('@')[0];
 
-    // Get message text
     const body = msg.message?.conversation ||
       msg.message?.extendedTextMessage?.text ||
       msg.message?.imageMessage?.caption ||
@@ -27,77 +25,82 @@ async function handleMessage(sock, m) {
     const command = isCommand ? body.slice(prefix.length).trim().split(' ')[0].toLowerCase() : '';
     const args = isCommand ? body.trim().split(/\s+/).slice(1) : [];
 
-    // Auto Typing indicator
-    if (config.autoTyping && isCommand) {
-      await sock.sendPresenceUpdate('composing', sender);
-      await new Promise(r => setTimeout(r, 1500));
-    }
-
-    // Auto Seen
     if (config.autoSeen) {
       await sock.readMessages([msg.key]);
     }
 
-    // Greeting auto reply with voice-style text
-    if (config.greetingAutoReply && !isCommand) {
-      const lowerBody = body.toLowerCase().trim();
-      if (config.greetingKeywords.some(k => lowerBody === k || lowerBody.startsWith(k + ' '))) {
-        const userData = loadUserData(senderNumber);
+    if (config.autoTyping && isCommand) {
+      await sock.sendPresenceUpdate('composing', sender);
+      await new Promise(r => setTimeout(r, 1000));
+    }
 
-        if (!userData) {
-          // First time - ask for details
-          await sock.sendMessage(sender, {
-            text: `🎙️ *හෙලෝ ${pushName}!* 👋\n\nමම *${config.botName}* 🤖\n\n_ඔබව identify කිරීමට..._\n\n📝 *ඔබේ Details Save කරගන්නද?*\n\nකරුණාකර ඔබේ Name, City සහ Age reply කරන්න:\n\nFormat: \`save:Name:City:Age\`\nExample: \`save:Kamal:Colombo:22\``
-          });
-        } else {
-          await sock.sendMessage(sender, {
-            text: `🎙️ *හෙලෝ ${userData.name}!* 👋\n\n📍 *City:* ${userData.city}\n🎂 *Age:* ${userData.age}\n\n✨ *ඔබට සහය වීමට සූදානම්!*\n\n💡 Commands list: \`${prefix}menu\``
-          });
-        }
-        return;
-      }
+    // ── Greeting auto reply ──────────────────────────────
+    if (!isCommand && config.greetingAutoReply) {
+      const lower = body.toLowerCase().trim();
 
       // Save user data
-      if (lowerBody.startsWith('save:')) {
+      if (lower.startsWith('save:')) {
         const parts = body.split(':');
         if (parts.length >= 4) {
-          saveUserData(senderNumber, { name: parts[1], city: parts[2], age: parts[3] });
+          await fs.ensureDir('./auth_info/users');
+          await fs.writeJson(`./auth_info/users/${senderNumber}.json`, { name: parts[1], city: parts[2], age: parts[3] });
           await sock.sendMessage(sender, {
-            text: `✅ *Data Saved!*\n\n👤 *Name:* ${parts[1]}\n📍 *City:* ${parts[2]}\n🎂 *Age:* ${parts[3]}\n\n🎉 ස්තූතියි! දැන් \`${prefix}menu\` ගහලා commands බලන්න.`
+            text: `✅ *Saved!*\n👤 Name: ${parts[1]}\n📍 City: ${parts[2]}\n🎂 Age: ${parts[3]}\n\nදැන් \`${prefix}menu\` ගහලා commands බලන්න!`
           });
           return;
         }
       }
+
+      if (config.greetingKeywords.some(k => lower === k || lower.startsWith(k + ' '))) {
+        let userData = null;
+        try { userData = await fs.readJson(`./auth_info/users/${senderNumber}.json`); } catch (e) {}
+
+        if (!userData) {
+          await sock.sendMessage(sender, {
+            text: `👋 *හෙලෝ ${pushName}!*\n\nමම *${config.botName}* 🤖\n\nඔබව save කරගන්නද?\n\nFormat: \`save:Name:City:Age\`\nExample: \`save:Kamal:Colombo:22\``
+          });
+        } else {
+          await sock.sendMessage(sender, {
+            text: `👋 *හෙලෝ ${userData.name}!*\n📍 ${userData.city} | 🎂 ${userData.age}\n\n💡 \`${prefix}menu\` ගහලා commands බලන්න!`
+          });
+        }
+        return;
+      }
+    }
+
+    // ── AI Auto Reply ────────────────────────────────────
+    if (!isCommand && config.aiMode && body.length > 2) {
+      try {
+        await sock.sendPresenceUpdate('composing', sender);
+        const res = await axios.get(
+          `${config.apiBase}/ai/claude?apikey=${config.apiKey}&q=${encodeURIComponent(body)}`,
+          { timeout: 25000 }
+        );
+        const reply = res.data?.result || res.data?.response || res.data?.answer || res.data?.text || res.data?.message;
+        if (reply) {
+          await sock.sendMessage(sender, { text: `🤖 ${reply}` });
+        }
+      } catch (e) {}
+      return;
     }
 
     if (!isCommand) return;
 
-    // Route commands
-    const handled = await imageCommands.handle(sock, msg, sender, command, args, body) ||
-                    await utilCommands.handle(sock, msg, sender, command, args, body) ||
-                    await botCommands.handle(sock, msg, sender, command, args, body);
+    // ── Route commands ───────────────────────────────────
+    const handled =
+      await imageCommands.handle(sock, msg, sender, command, args, body) ||
+      await utilCommands.handle(sock, msg, sender, command, args, body) ||
+      await botCommands.handle(sock, msg, sender, command, args, body);
 
     if (!handled) {
       await sock.sendMessage(sender, {
-        text: `❓ *Unknown Command!*\n\n\`${prefix}${command}\` command හොයාගත නොහැකිය.\n\n💡 Commands list: \`${prefix}menu\``
+        text: `❓ \`${prefix}${command}\` command නෑ.\n\n💡 \`${prefix}menu\` ගහලා commands බලන්න!`
       });
     }
 
   } catch (e) {
-    console.log('[MESSAGE HANDLER ERROR]', e.message);
+    console.log('[MSG ERROR]', e.message);
   }
-}
-
-function loadUserData(number) {
-  try {
-    const file = `../auth_info/users/${number}.json`;
-    return fs.existsSync(file) ? fs.readJsonSync(file) : null;
-  } catch { return null; }
-}
-
-function saveUserData(number, data) {
-  fs.ensureDirSync('../auth_info/users');
-  fs.writeJsonSync(`../auth_info/users/${number}.json`, data);
 }
 
 module.exports = { handleMessage };
