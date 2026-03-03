@@ -3,653 +3,456 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WA-BOT | Dashboard</title>
+<title>CHALAH MD | Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="/socket.io/socket.io.js"></script>
 <style>
-  :root {
-    --green: #00ff88;
-    --green2: #00cc66;
-    --dark: #030c06;
-    --dark2: #071408;
-    --card: #0a1e0d;
-    --card2: #0d2610;
-    --border: #0d3516;
-    --text: #c8ffd8;
-    --muted: #4d8a5f;
-    --red: #ff4466;
-    --yellow: #ffcc00;
-    --glow: 0 0 20px rgba(0,255,136,0.3);
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    font-family: 'Rajdhani', sans-serif;
-    background: var(--dark);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-  }
-
-  /* Sidebar */
-  .sidebar {
-    width: 240px;
-    min-height: 100vh;
-    background: var(--dark2);
-    border-right: 1px solid var(--border);
-    padding: 24px 0;
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    display: flex; flex-direction: column;
-    z-index: 100;
-  }
-  .sidebar-logo {
-    text-align: center;
-    padding: 0 20px 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 20px;
-  }
-  .sidebar-logo h2 {
-    font-family: 'Orbitron', sans-serif;
-    color: var(--green);
-    font-size: 20px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    text-shadow: var(--glow);
-  }
-  .sidebar-logo p { color: var(--muted); font-size: 11px; letter-spacing: 1px; }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 24px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    border-left: 3px solid transparent;
-  }
-  .nav-item:hover { color: var(--text); background: rgba(0,255,136,0.04); }
-  .nav-item.active { color: var(--green); background: rgba(0,255,136,0.07); border-left-color: var(--green); }
-  .nav-icon { font-size: 18px; width: 24px; text-align: center; }
-
-  .sidebar-bottom {
-    margin-top: auto;
-    padding: 20px;
-    border-top: 1px solid var(--border);
-  }
-  .bot-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    background: rgba(0,0,0,0.3);
-    border-radius: 10px;
-    margin-bottom: 12px;
-  }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
-  .status-dot.offline { background: var(--red); animation: none; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-  .status-text { font-size: 13px; }
-  .status-text strong { color: var(--green); display: block; font-size: 14px; }
-  
-  .logout-btn {
-    display: block;
-    text-align: center;
-    padding: 10px;
-    background: rgba(255,68,102,0.1);
-    border: 1px solid rgba(255,68,102,0.2);
-    border-radius: 8px;
-    color: var(--red);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-  .logout-btn:hover { background: rgba(255,68,102,0.2); }
-
-  /* Main Content */
-  .main {
-    margin-left: 240px;
-    flex: 1;
-    padding: 28px;
-    min-height: 100vh;
-  }
-  .page { display: none; }
-  .page.active { display: block; }
-
-  .page-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 22px;
-    color: var(--green);
-    font-weight: 700;
-    margin-bottom: 24px;
-    letter-spacing: 2px;
-  }
-
-  /* Cards */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-  }
-  .stat-card { text-align: center; }
-  .stat-icon { font-size: 32px; display: block; margin-bottom: 10px; }
-  .stat-value { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--green); font-weight: 700; }
-  .stat-label { color: var(--muted); font-size: 12px; letter-spacing: 1px; margin-top: 4px; }
-
-  /* Toggle switches */
-  .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-  .setting-item {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .setting-info { display: flex; align-items: center; gap: 12px; }
-  .setting-icon { font-size: 22px; }
-  .setting-label { font-size: 15px; font-weight: 600; }
-  .setting-desc { color: var(--muted); font-size: 12px; }
-
-  .toggle {
-    position: relative;
-    width: 50px;
-    height: 26px;
-    flex-shrink: 0;
-  }
-  .toggle input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background: rgba(255,255,255,0.1);
-    border-radius: 26px;
-    transition: 0.3s;
-    border: 1px solid var(--border);
-  }
-  .slider:before {
-    content: '';
-    position: absolute;
-    height: 18px; width: 18px;
-    left: 3px; bottom: 3px;
-    background: #888;
-    border-radius: 50%;
-    transition: 0.3s;
-  }
-  input:checked + .slider { background: rgba(0,255,136,0.2); border-color: var(--green); }
-  input:checked + .slider:before { transform: translateX(24px); background: var(--green); box-shadow: var(--glow); }
-
-  /* Commands table */
-  .commands-table { width: 100%; border-collapse: collapse; }
-  .commands-table th {
-    background: var(--card2);
-    color: var(--green);
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-  .commands-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(13,53,22,0.5);
-    font-size: 14px;
-    color: var(--text);
-  }
-  .commands-table tr:hover td { background: rgba(0,255,136,0.03); }
-  .cmd-badge {
-    background: rgba(0,255,136,0.1);
-    border: 1px solid rgba(0,255,136,0.2);
-    color: var(--green);
-    padding: 3px 10px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 13px;
-  }
-  .cat-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-  .cat-image { background: rgba(0,150,255,0.15); color: #66aaff; border: 1px solid rgba(0,150,255,0.2); }
-  .cat-bot { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
-  .cat-status { background: rgba(255,180,0,0.12); color: #ffcc44; border: 1px solid rgba(255,180,0,0.2); }
-  .cat-util { background: rgba(180,0,255,0.12); color: #cc66ff; border: 1px solid rgba(180,0,255,0.2); }
-
-  /* Input fields */
-  .form-row { margin-bottom: 16px; }
-  .form-label { display: block; color: var(--green); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
-  .form-input {
-    width: 100%;
-    padding: 12px 14px;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    transition: all 0.2s;
-  }
-  .form-input:focus { outline: none; border-color: var(--green); }
-
-  .save-btn {
-    padding: 12px 28px;
-    background: linear-gradient(135deg, var(--green), var(--green2));
-    border: none;
-    border-radius: 8px;
-    color: #000;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-  }
-  .save-btn:hover { box-shadow: var(--glow); transform: translateY(-1px); }
-
-  .update-btn {
-    padding: 14px 28px;
-    background: linear-gradient(135deg, #0066ff, #0044bb);
-    border: none;
-    border-radius: 8px;
-    color: #fff;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-    margin-right: 12px;
-  }
-
-  .section-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px;
-    margin-bottom: 20px;
-  }
-  .section-title { color: var(--green); font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-
-  .toast {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    padding: 14px 20px;
-    background: var(--card2);
-    border: 1px solid var(--green);
-    border-radius: 10px;
-    color: var(--green);
-    font-size: 14px;
-    font-weight: 600;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s;
-    z-index: 999;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
+:root{--g:#00ff88;--g2:#00cc66;--dark:#030c06;--d2:#071408;--card:#0a1e0d;--c2:#0d2610;--bdr:#0d3516;--txt:#c8ffd8;--mt:#4d8a5f;--red:#ff4466;--yl:#ffcc00;--glow:0 0 20px rgba(0,255,136,0.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Rajdhani',sans-serif;background:var(--dark);color:var(--txt);min-height:100vh;display:flex}
+.sidebar{width:230px;min-height:100vh;background:var(--d2);border-right:1px solid var(--bdr);padding:20px 0;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:100}
+.logo{text-align:center;padding:0 16px 20px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
+.logo h2{font-family:'Orbitron',sans-serif;color:var(--g);font-size:17px;font-weight:900;letter-spacing:3px;text-shadow:var(--glow)}
+.logo p{color:var(--mt);font-size:10px;letter-spacing:1px;margin-top:3px}
+.nav{display:flex;align-items:center;gap:10px;padding:11px 20px;color:var(--mt);cursor:pointer;transition:all 0.2s;font-size:14px;font-weight:500;border-left:3px solid transparent}
+.nav:hover{color:var(--txt);background:rgba(0,255,136,0.04)}
+.nav.active{color:var(--g);background:rgba(0,255,136,0.07);border-left-color:var(--g)}
+.sb-bot{margin-top:auto;padding:16px;border-top:1px solid var(--bdr)}
+.status-pill{display:flex;align-items:center;gap:8px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:10px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--g);animation:blink 1.5s infinite}
+.dot.off{background:var(--red);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.st-txt strong{color:var(--g);display:block;font-size:13px}
+.st-txt span{color:var(--mt);font-size:11px}
+.logout{display:block;text-align:center;padding:9px;background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.2);border-radius:7px;color:var(--red);text-decoration:none;font-size:12px;font-weight:600;transition:all 0.2s}
+.logout:hover{background:rgba(255,68,102,0.2)}
+.main{margin-left:230px;flex:1;padding:24px;min-height:100vh}
+.page{display:none}.page.active{display:block}
+.ptitle{font-family:'Orbitron',sans-serif;font-size:20px;color:var(--g);font-weight:700;margin-bottom:20px;letter-spacing:2px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:18px}
+.stat-card{text-align:center}
+.si{font-size:30px;display:block;margin-bottom:8px}
+.sv{font-family:'Orbitron',sans-serif;font-size:26px;color:var(--g);font-weight:700}
+.sl{color:var(--mt);font-size:11px;letter-spacing:1px;margin-top:3px}
+.sc{background:var(--card);border:1px solid var(--bdr);border-radius:13px;padding:22px;margin-bottom:18px}
+.stitle{color:var(--g);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;padding-bottom:9px;border-bottom:1px solid var(--bdr)}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.si2{background:var(--card);border:1px solid var(--bdr);border-radius:11px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.si2-info{display:flex;align-items:center;gap:10px}
+.si2-ic{font-size:20px}
+.si2-lb{font-size:14px;font-weight:600}
+.si2-ds{color:var(--mt);font-size:11px}
+.toggle{position:relative;width:46px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.sldr{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.1);border-radius:24px;transition:0.3s;border:1px solid var(--bdr)}
+.sldr:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:0.3s}
+input:checked+.sldr{background:rgba(0,255,136,0.2);border-color:var(--g)}
+input:checked+.sldr:before{transform:translateX(22px);background:var(--g);box-shadow:var(--glow)}
+.fr{margin-bottom:14px}
+.fl{display:block;color:var(--g);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.fi{width:100%;padding:11px 13px;background:rgba(0,0,0,0.4);border:1px solid var(--bdr);border-radius:7px;color:var(--txt);font-family:'Rajdhani',sans-serif;font-size:14px;transition:all 0.2s}
+.fi:focus{outline:none;border-color:var(--g)}
+.sbtn{padding:11px 24px;background:linear-gradient(135deg,var(--g),var(--g2));border:none;border-radius:7px;color:#000;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:1px}
+.sbtn:hover{box-shadow:var(--glow);transform:translateY(-1px)}
+.ubtn{padding:12px 24px;background:linear-gradient(135deg,#0066ff,#0044bb);border:none;border-radius:7px;color:#fff;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:1px;margin-right:10px}
+.ctbl{width:100%;border-collapse:collapse}
+.ctbl th{background:var(--c2);color:var(--g);font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:11px 14px;text-align:left;border-bottom:1px solid var(--bdr)}
+.ctbl td{padding:11px 14px;border-bottom:1px solid rgba(13,53,22,0.5);font-size:13px}
+.ctbl tr:hover td{background:rgba(0,255,136,0.03)}
+.cb{background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);color:var(--g);padding:2px 9px;border-radius:3px;font-family:monospace;font-size:12px}
+.cat{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
+.ci{background:rgba(0,150,255,0.15);color:#66aaff;border:1px solid rgba(0,150,255,0.2)}
+.cb2{background:rgba(0,255,136,0.12);color:var(--g);border:1px solid rgba(0,255,136,0.2)}
+.cs{background:rgba(255,180,0,0.12);color:#ffcc44;border:1px solid rgba(255,180,0,0.2)}
+.cu{background:rgba(180,0,255,0.12);color:#cc66ff;border:1px solid rgba(180,0,255,0.2)}
+.cg{background:rgba(255,100,0,0.12);color:#ff8844;border:1px solid rgba(255,100,0,0.2)}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;background:var(--c2);border:1px solid var(--g);border-radius:9px;color:var(--g);font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all 0.3s;z-index:999}
+.toast.show{transform:translateY(0);opacity:1}
+.react-box{background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);border-radius:10px;padding:18px;margin-bottom:16px}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+.media-item{background:rgba(0,0,0,0.3);border:1px solid var(--bdr);border-radius:8px;padding:12px;text-align:center}
+.media-icon{font-size:24px;display:block;margin-bottom:6px}
+.media-count{font-family:'Orbitron',sans-serif;font-size:18px;color:var(--g)}
+.media-label{font-size:11px;color:var(--mt);margin-top:2px}
 </style>
 </head>
 <body>
-
-<!-- Sidebar -->
 <div class="sidebar">
-  <div class="sidebar-logo">
-    <h2>🤖 WA-BOT</h2>
-    <p>CONTROL PANEL</p>
-  </div>
-
-  <div class="nav-item active" onclick="showPage('dashboard')">
-    <span class="nav-icon">📊</span> Dashboard
-  </div>
-  <div class="nav-item" onclick="showPage('settings')">
-    <span class="nav-icon">⚙️</span> Settings
-  </div>
-  <div class="nav-item" onclick="showPage('commands')">
-    <span class="nav-icon">💬</span> Commands
-  </div>
-  <div class="nav-item" onclick="showPage('update')">
-    <span class="nav-icon">🔄</span> Update / GitHub
-  </div>
-  <div class="nav-item" onclick="showPage('connect')">
-    <span class="nav-icon">📱</span> Reconnect
-  </div>
-
-  <div class="sidebar-bottom">
-    <div class="bot-status">
-      <div class="status-dot" id="statusDot"></div>
-      <div class="status-text">
-        <strong id="statusText">Checking...</strong>
-        <span id="botNumber" style="color:var(--muted);font-size:12px"></span>
-      </div>
+  <div class="logo"><h2>💎 CHALAH MD</h2><p>CONTROL PANEL</p></div>
+  <div class="nav active" onclick="showPage('dashboard',this)"><span>📊</span> Dashboard</div>
+  <div class="nav" onclick="showPage('settings',this)"><span>⚙️</span> Settings</div>
+  <div class="nav" onclick="showPage('customize',this)"><span>🎨</span> Customize</div>
+  <div class="nav" onclick="showPage('commands',this)"><span>💬</span> Commands</div>
+  <div class="nav" onclick="showPage('react',this)"><span>❤️</span> Channel React</div>
+  <div class="nav" onclick="showPage('stats',this)"><span>📈</span> Stats</div>
+  <div class="nav" onclick="showPage('update',this)"><span>🔄</span> Update</div>
+  <div class="nav" onclick="showPage('connect',this)"><span>📱</span> Reconnect</div>
+  <div class="sb-bot">
+    <div class="status-pill">
+      <div class="dot" id="sDot"></div>
+      <div class="st-txt"><strong id="sTxt">Checking...</strong><span id="sNum"></span></div>
     </div>
-    <a href="/api/logout" class="logout-btn">🚪 Logout</a>
+    <a href="/api/logout" class="logout">🚪 Logout</a>
   </div>
 </div>
 
-<!-- Main Content -->
 <div class="main">
 
-  <!-- Dashboard Page -->
-  <div class="page active" id="page-dashboard">
-    <div class="page-title">📊 DASHBOARD</div>
-
-    <div class="grid">
-      <div class="card stat-card">
-        <span class="stat-icon">📨</span>
-        <div class="stat-value" id="msgCount">0</div>
-        <div class="stat-label">MESSAGES</div>
-      </div>
-      <div class="card stat-card">
-        <span class="stat-icon">📸</span>
-        <div class="stat-value" id="statusCount">0</div>
-        <div class="stat-label">STATUS SEEN</div>
-      </div>
-      <div class="card stat-card">
-        <span class="stat-icon">⏱️</span>
-        <div class="stat-value" id="uptimeDisplay">0m</div>
-        <div class="stat-label">UPTIME</div>
-      </div>
-      <div class="card stat-card">
-        <span class="stat-icon">⚡</span>
-        <div class="stat-value" id="botMode">ON</div>
-        <div class="stat-label">BOT STATUS</div>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">🟢 Bot Connection</div>
-      <div id="connectionInfo" style="color:var(--muted);font-size:15px;line-height:2">
-        Loading...
-      </div>
-    </div>
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="ptitle">📊 DASHBOARD</div>
+  <div class="grid4">
+    <div class="card stat-card"><span class="si">💬</span><div class="sv" id="dMsgs">0</div><div class="sl">TODAY MESSAGES</div></div>
+    <div class="card stat-card"><span class="si">👥</span><div class="sv" id="dUsers">0</div><div class="sl">TODAY USERS</div></div>
+    <div class="card stat-card"><span class="si">⏱️</span><div class="sv" id="dUp">0m</div><div class="sl">UPTIME</div></div>
+    <div class="card stat-card"><span class="si">⚡</span><div class="sv" id="dStatus">--</div><div class="sl">BOT STATUS</div></div>
   </div>
-
-  <!-- Settings Page -->
-  <div class="page" id="page-settings">
-    <div class="page-title">⚙️ SETTINGS</div>
-
-    <div class="section-card">
-      <div class="section-title">🤖 Bot Features</div>
-      <div class="settings-grid" id="toggleSettings">
-        <!-- Loaded dynamically -->
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">🎨 Customization</div>
-      <div class="form-row">
-        <label class="form-label">Bot Name</label>
-        <input class="form-input" id="botName" placeholder="WA-BOT" />
-      </div>
-      <div class="form-row">
-        <label class="form-label">Status Like Emoji</label>
-        <input class="form-input" id="statusEmoji" placeholder="❤️" maxlength="4" />
-      </div>
-      <div class="form-row">
-        <label class="form-label">Status Auto Reply Message</label>
-        <input class="form-input" id="statusReplyMsg" placeholder="✨ Status කියෙව්වා!" />
-      </div>
-      <div class="form-row">
-        <label class="form-label">Command Prefix</label>
-        <input class="form-input" id="cmdPrefix" placeholder="." maxlength="2" style="max-width:100px" />
-      </div>
-      <button class="save-btn" onclick="saveSettings()">💾 SAVE SETTINGS</button>
-    </div>
-  </div>
-
-  <!-- Commands Page -->
-  <div class="page" id="page-commands">
-    <div class="page-title">💬 COMMANDS LIST</div>
-    <div class="section-card">
-      <div class="section-title">ALL COMMANDS</div>
-      <table class="commands-table">
-        <tr>
-          <th>Command</th>
-          <th>Description</th>
-          <th>Category</th>
-        </tr>
-        <tr><td><span class="cmd-badge">.menu</span></td><td>Commands list</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
-        <tr><td><span class="cmd-badge">.ping</span></td><td>Bot ping check</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
-        <tr><td><span class="cmd-badge">.info</span></td><td>Bot information</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
-        <tr><td><span class="cmd-badge">.update</span></td><td>GitHub update check</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
-        <tr><td><span class="cmd-badge">.edit prompt</span></td><td>AI Image Edit ✨</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.ttlike url</span></td><td>TikTok Free Like ❤️</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.ff uid</span></td><td>Free Fire Info 🎮</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.ai question</span></td><td>AI Ask 🤖</td><td><span class="cat-badge cat-bot">BOT</span></td></tr>
-        <tr><td><span class="cmd-badge">.sticker / .s</span></td><td>Image to sticker</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.toimg</span></td><td>Sticker to image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.blur [level]</span></td><td>Blur image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.enhance</span></td><td>Enhance image quality</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.circle</span></td><td>Circular crop image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.resize w h</span></td><td>Resize image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.caption text</span></td><td>Add text to image</td><td><span class="cat-badge cat-image">IMAGE</span></td></tr>
-        <tr><td><span class="cmd-badge">.save</span></td><td>Save status (quote & reply)</td><td><span class="cat-badge cat-status">STATUS</span></td></tr>
-        <tr><td><span class="cmd-badge">.autoseen on/off</span></td><td>Auto seen toggle</td><td><span class="cat-badge cat-status">STATUS</span></td></tr>
-        <tr><td><span class="cmd-badge">.autolike on/off</span></td><td>Auto like status toggle</td><td><span class="cat-badge cat-status">STATUS</span></td></tr>
-        <tr><td><span class="cmd-badge">.setemoji 💖</span></td><td>Set status like emoji</td><td><span class="cat-badge cat-status">STATUS</span></td></tr>
-        <tr><td><span class="cmd-badge">.quote / .q</span></td><td>Random quote</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.joke / .j</span></td><td>Random joke</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.fact / .f</span></td><td>Random fact</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.weather city</span></td><td>Weather info</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.translate lang text</span></td><td>Translate text</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-        <tr><td><span class="cmd-badge">.tt url</span></td><td>TikTok download</td><td><span class="cat-badge cat-util">UTIL</span></td></tr>
-      </table>
-    </div>
-  </div>
-
-  <!-- Update Page -->
-  <div class="page" id="page-update">
-    <div class="page-title">🔄 AUTO UPDATE</div>
-    <div class="section-card">
-      <div class="section-title">⚙️ GitHub Configuration</div>
-      <div class="form-row">
-        <label class="form-label">GitHub Repository URL</label>
-        <input class="form-input" id="githubRepo" placeholder="https://github.com/username/wabot" />
-      </div>
-      <button class="save-btn" onclick="saveGithub()">💾 SAVE REPO</button>
-    </div>
-    <div class="section-card">
-      <div class="section-title">🚀 Manual Update</div>
-      <p style="color:var(--muted);font-size:14px;margin-bottom:16px">GitHub repo configure කළාට පස්සෙ, bot manually update කරන්න:</p>
-      <button class="update-btn" onclick="doUpdate()">⬆️ UPDATE NOW</button>
-      <div id="updateResult" style="margin-top:14px;color:var(--green);font-size:14px"></div>
-    </div>
-    <div class="section-card">
-      <div class="section-title">ℹ️ Auto Update Info</div>
-      <p style="color:var(--muted);font-size:14px;line-height:2">
-        ✅ Bot සෑම <strong style="color:var(--green)">30 minutes</strong>කට GitHub check කරනවා<br>
-        ✅ New commits detect වුණොත් <strong style="color:var(--green)">automatically pull</strong> කරනවා<br>
-        ✅ Bot <strong style="color:var(--green)">auto restart</strong> වෙනවා (PM2 / systemd use කරන්න)<br>
-        ⚠️ <strong style="color:var(--yellow)">PM2</strong> install කරලා <code style="color:var(--green)">pm2 start src/bot.js</code> run කරන්න
-      </p>
-    </div>
-  </div>
-
-  <!-- Reconnect Page -->
-  <div class="page" id="page-connect">
-    <div class="page-title">📱 RECONNECT BOT</div>
-    <div class="section-card">
-      <p style="color:var(--muted);margin-bottom:16px">Bot disconnect වුණොත් reconnect කරන්න:</p>
-      <a href="/connect" target="_blank" class="save-btn" style="display:inline-block;text-decoration:none">📱 GO TO CONNECT PAGE →</a>
-    </div>
-  </div>
-
+  <div class="sc"><div class="stitle">🟢 Connection Info</div><div id="connInfo" style="color:var(--mt);font-size:14px;line-height:2">Loading...</div></div>
+  <div class="sc"><div class="stitle">📁 Today Media Stats</div><div class="media-grid" id="mediaGrid"><div style="color:var(--mt);font-size:13px">Loading...</div></div></div>
 </div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="ptitle">⚙️ SETTINGS</div>
+  <div class="sc"><div class="stitle">🤖 Bot Features</div><div class="sg" id="toggleGrid"></div></div>
+</div>
+
+<!-- CUSTOMIZE -->
+<div class="page" id="page-customize">
+  <div class="ptitle">🎨 CUSTOMIZE</div>
+  <div class="sc">
+    <div class="stitle">🖼️ Images</div>
+    <div class="fr"><label class="fl">Menu Image URL</label><input class="fi" id="cMenuImg" placeholder="https://i.imgur.com/..." /></div>
+    <div class="fr"><label class="fl">Connect Image URL</label><input class="fi" id="cConnImg" placeholder="https://i.imgur.com/..." /></div>
+  </div>
+  <div class="sc">
+    <div class="stitle">🏷️ Bot Info</div>
+    <div class="fr"><label class="fl">Bot Name</label><input class="fi" id="cName" placeholder="CHALAH MD" /></div>
+    <div class="fr"><label class="fl">Owner Name</label><input class="fi" id="cOwner" placeholder="CHALAH" /></div>
+    <div class="fr"><label class="fl">Owner Number</label><input class="fi" id="cOwnerNum" placeholder="94742271802" /></div>
+    <div class="fr"><label class="fl">Command Prefix</label><input class="fi" id="cPrefix" placeholder="." style="max-width:80px" /></div>
+  </div>
+  <div class="sc">
+    <div class="stitle">💬 Auto Messages</div>
+    <div class="fr"><label class="fl">Status Like Emoji</label><input class="fi" id="cEmoji" placeholder="❤️" style="max-width:100px" /></div>
+    <div class="fr"><label class="fl">Status Auto Reply Message</label><input class="fi" id="cSReply" placeholder="✨ Status කියෙව්වා!" /></div>
+    <div class="fr"><label class="fl">Panel URL</label><input class="fi" id="cPanel" placeholder="https://your-bot.render.com" /></div>
+  </div>
+  <button class="sbtn" onclick="saveCustomize()">💾 SAVE ALL</button>
+</div>
+
+<!-- COMMANDS -->
+<div class="page" id="page-commands">
+  <div class="ptitle">💬 COMMANDS</div>
+  <div class="sc">
+    <div class="stitle">ALL COMMANDS</div>
+    <table class="ctbl">
+      <tr><th>Command</th><th>Description</th><th>Category</th></tr>
+      <tr><td><span class="cb">.menu</span></td><td>Commands list with image</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.ping</span></td><td>Bot ping</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.info</span></td><td>Bot info</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.settings</span></td><td>All settings list</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.bot [number]</span></td><td>Deploy bot to number</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.stats</span></td><td>Today's bot stats</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.ai [question]</span></td><td>Ask AI</td><td><span class="cat cb2">BOT</span></td></tr>
+      <tr><td><span class="cb">.edit [prompt]</span></td><td>AI Image Edit ✨</td><td><span class="cat ci">IMAGE</span></td></tr>
+      <tr><td><span class="cb">.sticker</span></td><td>Image → Sticker</td><td><span class="cat ci">IMAGE</span></td></tr>
+      <tr><td><span class="cb">.toimg</span></td><td>Sticker → Image</td><td><span class="cat ci">IMAGE</span></td></tr>
+      <tr><td><span class="cb">.blur</span></td><td>Blur image</td><td><span class="cat ci">IMAGE</span></td></tr>
+      <tr><td><span class="cb">.enhance</span></td><td>Enhance image</td><td><span class="cat ci">IMAGE</span></td></tr>
+      <tr><td><span class="cb">.resize w h</span></td><td>Resize image</td><td><span class="cat ci">IMAGE</span></td></tr>
+      <tr><td><span class="cb">.yt [url]</span></td><td>YouTube Download</td><td><span class="cat cu">DL</span></td></tr>
+      <tr><td><span class="cb">.tt [url]</span></td><td>TikTok Download</td><td><span class="cat cu">DL</span></td></tr>
+      <tr><td><span class="cb">.fb [url]</span></td><td>Facebook Download</td><td><span class="cat cu">DL</span></td></tr>
+      <tr><td><span class="cb">.ig [url]</span></td><td>Instagram Download</td><td><span class="cat cu">DL</span></td></tr>
+      <tr><td><span class="cb">.ttlike [url]</span></td><td>TikTok Free Like ❤️</td><td><span class="cat cu">DL</span></td></tr>
+      <tr><td><span class="cb">.ff [uid]</span></td><td>Free Fire Info 🎮</td><td><span class="cat cu">TOOL</span></td></tr>
+      <tr><td><span class="cb">.weather [city]</span></td><td>Weather info</td><td><span class="cat cu">TOOL</span></td></tr>
+      <tr><td><span class="cb">.translate [lang] [text]</span></td><td>Translate text</td><td><span class="cat cu">TOOL</span></td></tr>
+      <tr><td><span class="cb">.save</span></td><td>Save status</td><td><span class="cat cs">STATUS</span></td></tr>
+      <tr><td><span class="cb">.tagall</span></td><td>Tag all members</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.kick @user</span></td><td>Kick member</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.add [num]</span></td><td>Add member</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.promote @user</span></td><td>Make admin</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.demote @user</span></td><td>Remove admin</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.mute / .unmute</span></td><td>Mute group</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.groupinfo</span></td><td>Group info</td><td><span class="cat cg">GROUP</span></td></tr>
+      <tr><td><span class="cb">.link</span></td><td>Invite link</td><td><span class="cat cg">GROUP</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- CHANNEL REACT -->
+<div class="page" id="page-react">
+  <div class="ptitle">❤️ CHANNEL REACT</div>
+  <div class="sc">
+    <div class="stitle">🚀 Send Reactions</div>
+    <div class="react-box">
+      <p style="color:var(--mt);font-size:13px;margin-bottom:14px">WhatsApp channel link දාලා bot deploy කළ count අනුව react ගහන්න!</p>
+      <div class="fr"><label class="fl">Channel Link</label><input class="fi" id="rLink" placeholder="https://whatsapp.com/channel/..." /></div>
+      <div class="fr"><label class="fl">Emoji</label><input class="fi" id="rEmoji" placeholder="❤️" style="max-width:100px" /></div>
+      <div class="fr"><label class="fl">React Count (max 50)</label><input class="fi" id="rCount" type="number" placeholder="10" min="1" max="50" style="max-width:120px" /></div>
+      <button class="sbtn" onclick="sendReacts()">❤️ SEND REACTS</button>
+      <div id="reactResult" style="margin-top:12px;font-size:14px;color:var(--g)"></div>
+    </div>
+    <div style="background:rgba(255,204,0,0.05);border:1px solid rgba(255,204,0,0.15);border-radius:9px;padding:14px;font-size:13px;color:#cc9900;line-height:1.8">
+      ⚠️ <strong style="color:var(--yl)">Note:</strong><br>
+      • Bot deployed count = react count<br>
+      • Multiple bots = more reacts<br>
+      • Channel public ද check කරන්න
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="page" id="page-stats">
+  <div class="ptitle">📈 STATISTICS</div>
+  <div class="sc">
+    <div class="stitle">📊 Today's Stats</div>
+    <div class="grid4" id="statsCards">Loading...</div>
+  </div>
+  <div class="sc">
+    <div class="stitle">📁 Media Breakdown</div>
+    <div class="media-grid" id="statsMedia">Loading...</div>
+  </div>
+</div>
+
+<!-- UPDATE -->
+<div class="page" id="page-update">
+  <div class="ptitle">🔄 AUTO UPDATE</div>
+  <div class="sc">
+    <div class="stitle">⚙️ GitHub Repo</div>
+    <div class="fr"><label class="fl">Repository URL</label><input class="fi" id="uRepo" placeholder="https://github.com/username/wabot" /></div>
+    <button class="sbtn" onclick="saveRepo()">💾 SAVE REPO</button>
+  </div>
+  <div class="sc">
+    <div class="stitle">🚀 Manual Update</div>
+    <button class="ubtn" onclick="doUpdate()">⬆️ UPDATE NOW</button>
+    <div id="uResult" style="margin-top:12px;color:var(--g);font-size:14px"></div>
+  </div>
+  <div class="sc">
+    <div class="stitle">ℹ️ Auto Update</div>
+    <p style="color:var(--mt);font-size:13px;line-height:2">
+      ✅ සෑම <strong style="color:var(--g)">30 minutes</strong>ට GitHub check<br>
+      ✅ New commits → <strong style="color:var(--g)">auto pull + restart</strong><br>
+      ⚠️ PM2 use කරන්න: <code style="color:var(--g)">pm2 start index.js --name chalah-md</code>
+    </p>
+  </div>
+</div>
+
+<!-- RECONNECT -->
+<div class="page" id="page-connect">
+  <div class="ptitle">📱 RECONNECT</div>
+  <div class="sc">
+    <p style="color:var(--mt);margin-bottom:14px;font-size:14px">Bot disconnect වුණොත්:</p>
+    <a href="/connect" target="_blank" class="sbtn" style="display:inline-block;text-decoration:none">📱 CONNECT PAGE →</a>
+  </div>
+</div>
+
+</div><!-- main -->
 
 <div class="toast" id="toast"></div>
 
 <script>
 const socket = io();
-let startTime = Date.now();
-let settings = {};
+const startT = Date.now();
+let cfg = {};
 
-// Navigation
-function showPage(name) {
+function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  event.currentTarget.classList.add('active');
+  if (el) el.classList.add('active');
   if (name === 'settings') loadSettings();
+  if (name === 'customize') loadCustomize();
+  if (name === 'stats') loadStatsPage();
+  if (name === 'update') loadUpdateConfig();
 }
 
-// Toast
-function toast(msg, color = 'var(--green)') {
+function toast(msg, color = 'var(--g)') {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.color = color;
-  el.style.borderColor = color;
+  el.textContent = msg; el.style.color = color; el.style.borderColor = color;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// Load bot status
 async function loadStatus() {
   const res = await fetch('/api/status');
-  const data = await res.json();
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  const num = document.getElementById('botNumber');
-  const info = document.getElementById('connectionInfo');
+  const d = await res.json();
+  const dot = document.getElementById('sDot');
+  const txt = document.getElementById('sTxt');
+  const num = document.getElementById('sNum');
+  const info = document.getElementById('connInfo');
 
-  if (data.status === 'connected') {
-    dot.className = 'status-dot';
-    txt.textContent = 'Connected';
-    txt.style.color = 'var(--green)';
-    num.textContent = data.number || '';
-    document.getElementById('botMode').textContent = 'ON';
-    info.innerHTML = `✅ <strong style="color:var(--green)">Bot Online!</strong><br>📱 Number: <strong>${data.number || 'N/A'}</strong><br>⚡ Status: Connected`;
+  if (d.connected || d.status === 'connected') {
+    dot.className = 'dot'; txt.textContent = 'Connected'; txt.style.color = 'var(--g)';
+    num.textContent = d.number || ''; document.getElementById('dStatus').textContent = 'ON';
+    info.innerHTML = `✅ <strong style="color:var(--g)">Online!</strong><br>📱 Number: <strong>${d.number||'N/A'}</strong>`;
   } else {
-    dot.className = 'status-dot offline';
-    txt.textContent = 'Disconnected';
-    txt.style.color = 'var(--red)';
-    num.textContent = '';
-    document.getElementById('botMode').textContent = 'OFF';
-    info.innerHTML = `❌ <strong style="color:var(--red)">Bot Offline</strong><br><a href="/connect" style="color:var(--green)">Click here to reconnect →</a>`;
+    dot.className = 'dot off'; txt.textContent = 'Offline'; txt.style.color = 'var(--red)';
+    num.textContent = ''; document.getElementById('dStatus').textContent = 'OFF';
+    info.innerHTML = `❌ <strong style="color:var(--red)">Offline</strong><br><a href="/connect" style="color:var(--g)">→ Reconnect</a>`;
   }
 }
 
-// Uptime counter
-setInterval(() => {
-  const sec = Math.floor((Date.now() - startTime) / 1000);
-  const m = Math.floor(sec / 60), h = Math.floor(m / 60);
-  document.getElementById('uptimeDisplay').textContent = h > 0 ? `${h}h${m%60}m` : `${m}m`;
-}, 1000);
+async function loadDashStats() {
+  try {
+    const res = await fetch('/api/stats');
+    const d = await res.json();
+    document.getElementById('dMsgs').textContent = d.totalMsgs || 0;
+    document.getElementById('dUsers').textContent = d.totalUsers || 0;
+    const icons = { imageMessage:'📸', videoMessage:'🎥', audioMessage:'🎵', documentMessage:'📄', stickerMessage:'🎭' };
+    const media = d.media || {};
+    const mg = document.getElementById('mediaGrid');
+    if (Object.keys(media).length === 0) {
+      mg.innerHTML = '<div style="color:var(--mt);font-size:13px">No media yet today</div>';
+    } else {
+      mg.innerHTML = Object.entries(media).map(([k,v]) => `
+        <div class="media-item"><span class="media-icon">${icons[k]||'📁'}</span>
+        <div class="media-count">${v}</div><div class="media-label">${k.replace('Message','')}</div></div>
+      `).join('');
+    }
+  } catch(e) {}
+}
 
-// Load settings
+async function loadStatsPage() {
+  try {
+    const res = await fetch('/api/stats');
+    const d = await res.json();
+    document.getElementById('statsCards').innerHTML = `
+      <div class="card stat-card"><span class="si">💬</span><div class="sv">${d.totalMsgs}</div><div class="sl">MESSAGES</div></div>
+      <div class="card stat-card"><span class="si">👥</span><div class="sv">${d.totalUsers}</div><div class="sl">USERS</div></div>
+    `;
+    const icons = { imageMessage:'📸', videoMessage:'🎥', audioMessage:'🎵', documentMessage:'📄', stickerMessage:'🎭' };
+    const media = d.media || {};
+    document.getElementById('statsMedia').innerHTML = Object.keys(media).length
+      ? Object.entries(media).map(([k,v]) => `<div class="media-item"><span class="media-icon">${icons[k]||'📁'}</span><div class="media-count">${v}</div><div class="media-label">${k.replace('Message','')}</div></div>`).join('')
+      : '<div style="color:var(--mt);font-size:13px">No media today</div>';
+  } catch(e) {}
+}
+
 async function loadSettings() {
   const res = await fetch('/api/config');
-  const data = await res.json();
-  if (!data.success) return;
-  settings = data.config;
-
-  const toggleItems = [
-    { key: 'autoSeen', icon: '👁️', label: 'Auto Seen', desc: 'Messages auto read' },
-    { key: 'autoTyping', icon: '⌨️', label: 'Auto Typing', desc: 'Typing indicator' },
-    { key: 'alwaysOnline', icon: '🟢', label: 'Always Online', desc: 'Always show online' },
-    { key: 'autoStatusSeen', icon: '📸', label: 'Status Auto Seen', desc: 'Auto view statuses' },
-    { key: 'autoStatusLike', icon: '❤️', label: 'Status Auto Like', desc: 'Auto like statuses' },
-    { key: 'autoStatusReply', icon: '💬', label: 'Status Auto Reply', desc: 'Auto reply to status' },
-    { key: 'autoStatusSave', icon: '💾', label: 'Status Auto Save', desc: 'Auto save statuses' },
-    { key: 'greetingAutoReply', icon: '👋', label: 'Greeting Auto Reply', desc: 'Reply to Hi/Hello' },
-    { key: 'aiMode', icon: '🤖', label: 'AI Auto Reply', desc: 'Messages AI reply කරනවා' },
+  const d = await res.json();
+  if (!d.success) return;
+  cfg = d.config;
+  const items = [
+    {k:'autoSeen',i:'👁️',l:'Auto Seen',ds:'Messages auto read'},
+    {k:'autoTyping',i:'⌨️',l:'Auto Typing',ds:'Show typing'},
+    {k:'alwaysOnline',i:'🟢',l:'Always Online',ds:'Always show online'},
+    {k:'autoStatusSeen',i:'📸',l:'Status Seen',ds:'Auto view status'},
+    {k:'autoStatusLike',i:'❤️',l:'Status Like',ds:'Auto like status'},
+    {k:'autoStatusReply',i:'💬',l:'Status Reply',ds:'Auto reply status'},
+    {k:'autoStatusSave',i:'💾',l:'Status Save',ds:'Auto save status'},
+    {k:'greetingAutoReply',i:'👋',l:'Greeting Reply',ds:'Reply Hi/Hello'},
+    {k:'aiMode',i:'🤖',l:'AI Auto Reply',ds:'AI reply messages'},
+    {k:'antiCall',i:'🚫',l:'Anti Call',ds:'Reject & reply calls'},
+    {k:'antiDelete',i:'🗑️',l:'Anti Delete',ds:'Recover deleted msgs'},
+    {k:'oneViewReveal',i:'👁️',l:'One View Reveal',ds:'Reveal view once media'},
   ];
-
-  const container = document.getElementById('toggleSettings');
-  container.innerHTML = toggleItems.map(item => `
-    <div class="setting-item">
-      <div class="setting-info">
-        <span class="setting-icon">${item.icon}</span>
-        <div>
-          <div class="setting-label">${item.label}</div>
-          <div class="setting-desc">${item.desc}</div>
-        </div>
+  document.getElementById('toggleGrid').innerHTML = items.map(it => `
+    <div class="si2">
+      <div class="si2-info"><span class="si2-ic">${it.i}</span>
+        <div><div class="si2-lb">${it.l}</div><div class="si2-ds">${it.ds}</div></div>
       </div>
-      <label class="toggle">
-        <input type="checkbox" data-key="${item.key}" ${settings[item.key] ? 'checked' : ''} onchange="toggleSetting(this)">
-        <span class="slider"></span>
-      </label>
+      <label class="toggle"><input type="checkbox" data-key="${it.k}" ${cfg[it.k]?'checked':''} onchange="toggleSetting(this)"><span class="sldr"></span></label>
     </div>
   `).join('');
-
-  document.getElementById('botName').value = settings.botName || '';
-  document.getElementById('statusEmoji').value = settings.autoStatusLikeEmoji || '❤️';
-  document.getElementById('statusReplyMsg').value = settings.autoStatusReplyMessage || '';
-  document.getElementById('cmdPrefix').value = settings.prefix || '.';
-  document.getElementById('githubRepo').value = settings.githubRepo || '';
 }
 
-async function toggleSetting(checkbox) {
-  const key = checkbox.dataset.key;
-  const value = checkbox.checked;
-  await fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ [key]: value })
+async function toggleSetting(cb) {
+  const res = await fetch('/api/config', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({[cb.dataset.key]: cb.checked})
   });
-  toast(`${key} ${value ? 'ON' : 'OFF'} කළා!`);
+  const d = await res.json();
+  toast(d.success ? `✅ ${cb.dataset.key} ${cb.checked?'ON':'OFF'}!` : '❌ Error!');
 }
 
-async function saveSettings() {
+async function loadCustomize() {
+  const res = await fetch('/api/config');
+  const d = await res.json();
+  if (!d.success) return;
+  const c = d.config;
+  document.getElementById('cMenuImg').value = c.menuImage || '';
+  document.getElementById('cConnImg').value = c.connectImage || '';
+  document.getElementById('cName').value = c.botName || '';
+  document.getElementById('cOwner').value = c.ownerName || '';
+  document.getElementById('cOwnerNum').value = c.ownerNumber || '';
+  document.getElementById('cPrefix').value = c.prefix || '.';
+  document.getElementById('cEmoji').value = c.autoStatusLikeEmoji || '❤️';
+  document.getElementById('cSReply').value = c.autoStatusReplyMessage || '';
+  document.getElementById('cPanel').value = c.panelUrl || '';
+}
+
+async function saveCustomize() {
   const data = {
-    botName: document.getElementById('botName').value,
-    autoStatusLikeEmoji: document.getElementById('statusEmoji').value,
-    autoStatusReplyMessage: document.getElementById('statusReplyMsg').value,
-    prefix: document.getElementById('cmdPrefix').value,
+    menuImage: document.getElementById('cMenuImg').value,
+    connectImage: document.getElementById('cConnImg').value,
+    botName: document.getElementById('cName').value,
+    ownerName: document.getElementById('cOwner').value,
+    ownerNumber: document.getElementById('cOwnerNum').value,
+    prefix: document.getElementById('cPrefix').value,
+    autoStatusLikeEmoji: document.getElementById('cEmoji').value,
+    autoStatusReplyMessage: document.getElementById('cSReply').value,
+    panelUrl: document.getElementById('cPanel').value,
   };
   const res = await fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(data)
   });
-  const result = await res.json();
-  toast(result.success ? '✅ Settings Saved!' : '❌ Error: ' + result.error);
+  const d = await res.json();
+  toast(d.success ? '✅ Saved!' : '❌ Error!');
 }
 
-async function saveGithub() {
-  const data = { githubRepo: document.getElementById('githubRepo').value };
-  const res = await fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+async function loadUpdateConfig() {
+  const res = await fetch('/api/config');
+  const d = await res.json();
+  if (d.success) document.getElementById('uRepo').value = d.config.githubRepo || '';
+}
+
+async function saveRepo() {
+  await fetch('/api/config', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({githubRepo: document.getElementById('uRepo').value})
   });
-  toast('✅ GitHub Repo Saved!');
+  toast('✅ Repo saved!');
 }
 
 async function doUpdate() {
-  const result = document.getElementById('updateResult');
-  result.textContent = '⏳ Checking for updates...';
-  const res = await fetch('/api/update', { method: 'POST' });
-  const data = await res.json();
-  result.textContent = data.success ? '✅ ' + data.message : '❌ ' + data.error;
+  document.getElementById('uResult').textContent = '⏳ Checking...';
+  const res = await fetch('/api/update', {method:'POST'});
+  const d = await res.json();
+  document.getElementById('uResult').textContent = (d.success ? '✅ ' : '❌ ') + (d.message || d.error);
 }
 
-// Socket events
-socket.on('statusUpdate', (data) => {
-  if (data.status === 'connected') loadStatus();
-});
+async function sendReacts() {
+  const link = document.getElementById('rLink').value.trim();
+  const emoji = document.getElementById('rEmoji').value.trim() || '❤️';
+  const count = document.getElementById('rCount').value || 10;
+  if (!link) { toast('Channel link enter කරන්න!', 'var(--red)'); return; }
+  document.getElementById('reactResult').textContent = '⏳ Sending reacts...';
+  const res = await fetch('/api/channel-react', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({channelLink: link, emoji, count})
+  });
+  const d = await res.json();
+  document.getElementById('reactResult').textContent = (d.success ? '✅ ' : '❌ ') + (d.message || d.error);
+}
 
-// Initialize
-loadStatus();
-setInterval(loadStatus, 15000);
+socket.on('statusUpdate', () => loadStatus());
 
-// Counter animations
-let msgC = 0, statC = 0;
 setInterval(() => {
-  msgC += Math.floor(Math.random() * 3);
-  statC += Math.floor(Math.random() * 2);
-  document.getElementById('msgCount').textContent = msgC;
-  document.getElementById('statusCount').textContent = statC;
-}, 8000);
+  const s = Math.floor((Date.now()-startT)/1000);
+  const m = Math.floor(s/60), h = Math.floor(m/60);
+  document.getElementById('dUp').textContent = h>0?`${h}h${m%60}m`:`${m}m`;
+}, 1000);
+
+loadStatus();
+loadDashStats();
+setInterval(loadStatus, 15000);
+setInterval(loadDashStats, 30000);
 </script>
 </body>
 </html>
